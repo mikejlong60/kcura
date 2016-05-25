@@ -1,3 +1,4 @@
+import scala.annotation.tailrec
 import scala.io.Source
 
 object Main extends App {
@@ -5,9 +6,19 @@ object Main extends App {
   val listOfLines = Source.fromFile("./src/main/resources/Sample_Cities.txt").getLines.toList
 
   val cities = listOfLines.map(line => line.split("\\|")).map(line => CityDemographics(population = line(0), city = line(1), state = line(2), interstates = line(3).split(";").toSet)).toSet
-  val chicago = cities.filter(_.city == "Chicago").head.copy(degreesOfConnection = 0)
+  val chicago = cities.filter(_.city == "Chicago")
+  val endResult = degreesFrom(chicago, cities)// :+ Set(chicago)
 
-  val endResult = degreesFrom(Set(chicago), cities - chicago, Vector.empty[Set[CityDemographics]]) :+ Set(chicago)
+  val finalResult = endResult.flatten
+//  import scala.util.Sorting
+//  val pairs = Array(("a", 5, 2), ("c", 3, 1), ("b", 1, 3))
+//
+//  // sort by 2nd element
+//  Sorting.quickSort(finalResult)(Ordering[CityDemographics].on(x => ))
+//
+//  // sort by the 3rd element, then 1st
+//  Sorting.quickSort(pairs)(Ordering[(Int, String)].on(x => (x._3, x._1)))
+//  Sorting.quickSort(finalResult)(Ordering[(String)].on(x => (x._3, x._1)))
   println("===============")
   endResult.foreach({
     level => {
@@ -17,33 +28,39 @@ object Main extends App {
   })
   println("++++++++++++++")
 
-  def getDirectConnections(currentLevel: Set[CityDemographics], nextLevelCandidates: Set[CityDemographics]): Set[CityDemographics] = {
-   def getDirectConnections(currentLevel: List[CityDemographics], accum: Set[CityDemographics]): Set[CityDemographics] = {
-     currentLevel match {
+
+  def getDirectConnections(currentCities: Set[CityDemographics], nextLevelCandidates: Set[CityDemographics], degreeOfConnection: Int): Set[CityDemographics] = {
+    @tailrec
+    def getDirectConnections(currentCities: List[CityDemographics], accum: Set[CityDemographics]): Set[CityDemographics] = {
+      def matchesForCity(city: CityDemographics): Set[CityDemographics] =
+        nextLevelCandidates.filter(candidateCity => candidateCity.interstates.intersect(city.interstates).nonEmpty)
+
+      currentCities match {
        case city :: Nil => {
-         val matches = nextLevelCandidates.filter(candidateCity => candidateCity.interstates.intersect(city.interstates).nonEmpty)
-         accum ++ matches
+         accum ++ matchesForCity(city)
        }
        case city :: cities => {
-         val matches = nextLevelCandidates.filter(candidateCity => candidateCity.interstates.intersect(city.interstates).nonEmpty)
-         getDirectConnections(cities, accum ++ matches)
+         getDirectConnections(cities, accum ++ matchesForCity(city))
        }
        case Nil => accum
      }
    }
-    getDirectConnections(currentLevel.toList, Set.empty[CityDemographics])
+    getDirectConnections(currentCities.toList, Set.empty[CityDemographics])
   }
 
-  def degreesFrom(currentLevel: Set[CityDemographics], candidates: Set[CityDemographics], accum: Vector[Set[CityDemographics]]): Vector[Set[CityDemographics]] = {
-    val directConnections = getDirectConnections(currentLevel, candidates -- currentLevel).toList
-    directConnections match {
-      case Nil => accum.reverse//Add level -1 to the vector
-      case _ => {
-        val newLevel = getDirectConnections(currentLevel, candidates -- currentLevel)
-        degreesFrom(newLevel, candidates -- currentLevel, accum :+ newLevel)
-      }
+  def degreesFrom(startingLevel: Set[CityDemographics], candidates: Set[CityDemographics]): Vector[Set[CityDemographics]] = {
+    @tailrec
+    def degreesFrom(currentLevel: Set[CityDemographics], candidates: Set[CityDemographics], accum: Vector[Set[CityDemographics]], degreeOfConnection: Int): Vector[Set[CityDemographics]] = {
+      val directConnections = getDirectConnections(currentLevel, candidates -- currentLevel, degreeOfConnection)
+      if (directConnections.isEmpty)
+        accum
+      else
+        degreesFrom(directConnections, candidates -- currentLevel, accum :+ directConnections, degreeOfConnection + 1)
     }
+    degreesFrom(startingLevel, candidates -- startingLevel, Vector.empty[Set[CityDemographics]], 0)
   }
 }
 
-case class CityDemographics(population: String, city: String, state: String, interstates: Set[String], degreesOfConnection: Int = -1)
+case class CityDemographics(degreeOfConnection: Int = -1, city: String, state: String, interstates: Set[String], population: String)// extends Ordered[CityDemographics] {
+//  def compare(that: CityDemographics) =  this.degreesOfConnection - that.degreesOfConnection && this.state > that.state
+//}
