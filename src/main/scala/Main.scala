@@ -17,7 +17,7 @@ object Main extends App {
   writer.close()
 
 
-  def getDirectConnections(currentCities: Set[CityDemographics], nextLevelCandidates: Set[CityDemographics], degreeOfConnection: Int): Set[CityDemographics] = {
+  def getDirectConnections(currentCities: Set[CityDemographics], nextLevelCandidates: Set[CityDemographics]): Set[CityDemographics] = {
     @tailrec
     def getDirectConnections(currentCities: List[CityDemographics], accum: Set[CityDemographics]): Set[CityDemographics] = {
       def matchesForCity(city: CityDemographics): Set[CityDemographics] =
@@ -37,15 +37,15 @@ object Main extends App {
       linkedLevels.foldLeft(Vector.empty[Set[CityDemographics]])((allCities, cities) => allCities :+ cities.map(city => city.copy(degreeOfConnection = allCities.length)))
 
     @tailrec
-    def degreesFrom(currentLevel: Set[CityDemographics], candidates: Set[CityDemographics], accum: Vector[Set[CityDemographics]], degreeOfConnection: Int): Vector[Set[CityDemographics]] = {
-      val directConnections = getDirectConnections(currentLevel, candidates -- currentLevel, degreeOfConnection)
+    def degreesFrom(currentLevel: Set[CityDemographics], candidates: Set[CityDemographics], accum: Vector[Set[CityDemographics]]): Vector[Set[CityDemographics]] = {
+      val directConnections = getDirectConnections(currentLevel, candidates -- currentLevel)
       if (directConnections.isEmpty) {
         addLevels(accum).+:(candidates -- currentLevel).reverse
 
       } else
-        degreesFrom(directConnections, candidates -- currentLevel, accum :+ directConnections, degreeOfConnection + 1)
+        degreesFrom(directConnections, candidates -- currentLevel, accum :+ directConnections)
     }
-    degreesFrom(startingLevel, candidates -- startingLevel, Vector(startingLevel), 0)
+    degreesFrom(startingLevel, candidates -- startingLevel, Vector(startingLevel))
   }
 }
 
