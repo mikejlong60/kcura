@@ -1,3 +1,5 @@
+import java.io.{File, PrintWriter}
+
 import scala.annotation.tailrec
 import scala.io.Source
 
@@ -7,27 +9,13 @@ object Main extends App {
 
   val cities = listOfLines.map(line => line.split("\\|")).map(line => CityDemographics(population = line(0), city = line(1), state = line(2), interstates = line(3).split(";").toSet)).toSet
   val chicago = cities.filter(_.city == "Chicago")
-  val endResult = degreesFrom(chicago, cities) // :+ Set(chicago)
+  val endResult = degreesFrom(chicago, cities).flatten
 
-  val finalResult = endResult.flatten
-  //  import scala.util.Sorting
-  //  val pairs = Array(("a", 5, 2), ("c", 3, 1), ("b", 1, 3))
-  //
-  //  // sort by 2nd element
-  //  Sorting.quickSort(finalResult)(Ordering[CityDemographics].on(x => ))
-  //
-  //  // sort by the 3rd element, then 1st
-  //  Sorting.quickSort(pairs)(Ordering[(Int, String)].on(x => (x._3, x._1)))
-  //  Sorting.quickSort(finalResult)(Ordering[(String)].on(x => (x._3, x._1)))
-  println("===============")
-  endResult.foreach({
-    level =>
-      {
-        println("length:" + level.size)
-        println(level)
-      }
-  })
-  println("++++++++++++++")
+  val writer = new PrintWriter(new File("test.txt" ))
+
+  endResult.foreach { line => writer.write(s"${line.degreeOfConnection} ${line.city},${line.state}\n")}
+  writer.close()
+
 
   def getDirectConnections(currentCities: Set[CityDemographics], nextLevelCandidates: Set[CityDemographics], degreeOfConnection: Int): Set[CityDemographics] = {
     @tailrec
@@ -53,6 +41,7 @@ object Main extends App {
       val directConnections = getDirectConnections(currentLevel, candidates -- currentLevel, degreeOfConnection)
       if (directConnections.isEmpty) {
         addLevels(accum).+:(candidates -- currentLevel).reverse
+
       } else
         degreesFrom(directConnections, candidates -- currentLevel, accum :+ directConnections, degreeOfConnection + 1)
     }
@@ -60,6 +49,4 @@ object Main extends App {
   }
 }
 
-case class CityDemographics(degreeOfConnection: Int = -1, city: String, state: String, interstates: Set[String], population: String) // extends Ordered[CityDemographics] {
-//  def compare(that: CityDemographics) =  this.degreesOfConnection - that.degreesOfConnection && this.state > that.state
-//}
+case class CityDemographics(degreeOfConnection: Int = -1, city: String, state: String, interstates: Set[String], population: String)
